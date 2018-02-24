@@ -37,11 +37,16 @@ int main(int argc, char** argv){
       printf("Fail reading arguments!\n");
     }else{
       argNum = parse(line);
+      /*for (int i = 0; i < argNum; ++i)
+      {
+        printf("%s ", args[i]);
+      }
+        printf("\n");*/
 
       if(!args){printf("Fail mallocing command lines!\n");exit(0);}
       
       checkExit(args[0], line);
-      exeCmds(line, 1);
+      exeCmds(line, 0);
 
       argNum = 0;
     }
@@ -84,7 +89,7 @@ int exeCmds(char* line, int bgmode){
   int status;
   pid = fork();
   if(pid == 0){
-    setpgid(0, 0);
+    //setpgid(0, 0);
     execvp(args[0], &args[0]);
     printf("\"%s\": command not found.\n",args[0]);
     free(line);
@@ -94,7 +99,7 @@ int exeCmds(char* line, int bgmode){
     exit(EXIT_SUCCESS);
   }
 
-  if(!bgmode)
+  //if(!bgmode)
     wait(&status);
 
   return 1;
