@@ -94,9 +94,9 @@ int parse(char* string){
     //printf("token b:%s \n",args[i]);                                          
   }
 
-  if(!n){printf("empty imput!\n");}
+  //if(!n){printf("empty imput!\n");}
 
-  //printf("num of token: %d \n", n);
+  printf("num of token: %d \n", n);
   destory_tokenizer(&t);
   return n;
 }
