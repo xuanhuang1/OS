@@ -23,8 +23,8 @@ int argNum;
 char** args=NULL;
 struct job *first_job = NULL;
 
-void checkExit(char* token, char* line);
-int exeCmds(char* line, int );
+void checkExit(char** token, char* line);
+int exeCmds(char**,char* line, int );
 int main(int argc, char** argv){
   
 
@@ -40,9 +40,22 @@ int main(int argc, char** argv){
       
       if(argNum != 0){
         if(!args){printf("Fail mallocing command lines!\n");exit(0);}
-      
-        checkExit(args[0], line);
-        exeCmds(line, 0);
+
+	int lastIndx = 0;
+	for(int i=0;i<argNum;i++){
+	  if(strcmp(args[i],";") == 0 || (i==argNum-1)){
+	    if(i == argNum-1) i++;
+	    char** toks = (char**)malloc(sizeof(char*)*(i-lastIndx+1));
+	    for(int k=lastIndx; k<i;k++) toks[k-lastIndx] = args[k];
+	    toks[i-lastIndx] = NULL;
+	    //for(int k=lastIndx; k<i;k++) printf("toks: %s",toks[k-lastIndx]);
+	    
+	    lastIndx = i+1;
+	    checkExit(toks, line);
+	    exeCmds(toks,line, 0);
+	    free(toks);
+	  }
+	}
       }
       free(line);
       for(int j=0;j<argNum;j++)
@@ -55,10 +68,12 @@ int main(int argc, char** argv){
 }
 
 
-void checkExit(char* token, char* line){
-  if(strcmp(token, builtInCommands[EXIT])== 0){
+void checkExit(char** toks, char* line){
+  if(!toks[0]) return;
+  if(strcmp(toks[0], builtInCommands[EXIT])== 0){
     //printf("exit shell ||%s||\n",token);
     free(line);
+    free(toks);
     for(int j=0;j<argNum;j++)
       free(args[j]);
     free(args);
@@ -77,9 +92,10 @@ int allDigitFrom(int index, char* string){
   return num;
 }
 
-int exeCmds(char* line, int bgmode){
-  
-  if(!args[0]){printf("No valid args!\n");return 1;}
+int exeCmds(char** toks,  char* line, int bgmode){
+
+  if(!toks){printf("Parsing failed in exeCmd\n");return 1;}
+  if(!toks[0]){printf("No valid args input for program!\n");return 1;}
   
   // execute input program
   pid_t pid = 1;
@@ -87,16 +103,18 @@ int exeCmds(char* line, int bgmode){
   pid = fork();
   if(pid == 0){
     //setpgid(0, 0);
-    execvp(args[0], &args[0]);
-    printf("\"%s\": command not found.\n",args[0]);
+    execvp(toks[0], &toks[0]);
+    printf("\"%s\": command not found.\n",toks[0]);
     free(line);
+    //for(int j=0;j<tokLen;j++)
+    free(toks);
     for(int j=0;j<argNum;j++)
       free(args[j]);
     free(args);
     exit(EXIT_SUCCESS);
   }
 
-  //if(!bgmode)
+  if(!bgmode)
     wait(&status);
 
   return 1;
