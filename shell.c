@@ -25,9 +25,26 @@ struct job *first_job = NULL;
 
 void checkExit(char* token, char* line);
 int exeCmds(char* line, int );
+int test(){
+  char string[] = "The sentence&; a aca ;g hd\0";
 
+  int n = parse(string);
+
+  for(int j=0;j<n;j++){
+    printf("token b:%s \n",args[j]);
+    free(args[j]);
+  }
+
+  free(args);
+
+
+  return 1;
+
+}
 int main(int argc, char** argv){
-
+  test();
+  
+/*
   while(1){
     size_t sizeInput;
     char* line = NULL;
@@ -55,7 +72,7 @@ int main(int argc, char** argv){
         free(args[j]);
       free(args);
     }
-  }
+  }*/
 }
 
 
