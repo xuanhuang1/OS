@@ -37,11 +37,11 @@ int main(int argc, char** argv){
       printf("Fail reading arguments!\n");
     }else{
       argNum = parse(line);
-      /*for (int i = 0; i < argNum; ++i)
+      for (int i = 0; i < argNum; ++i)
       {
         printf("%s ", args[i]);
       }
-        printf("\n");*/
+        printf("\n");
       if(argNum != 0){
         if(!args){printf("Fail mallocing command lines!\n");exit(0);}
       
