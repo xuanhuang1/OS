@@ -25,26 +25,9 @@ struct job *first_job = NULL;
 
 void checkExit(char* token, char* line);
 int exeCmds(char* line, int );
-int test(){
-  char string[] = "The sentence&; a aca ;g hd\0";
-
-  int n = parse(string);
-
-  for(int j=0;j<n;j++){
-    printf("token b:%s \n",args[j]);
-    free(args[j]);
-  }
-
-  free(args);
-
-
-  return 1;
-
-}
 int main(int argc, char** argv){
-  test();
   
-/*
+
   while(1){
     size_t sizeInput;
     char* line = NULL;
@@ -54,25 +37,21 @@ int main(int argc, char** argv){
       printf("Fail reading arguments!\n");
     }else{
       argNum = parse(line);
-      for (int i = 0; i < argNum; ++i)
-      {
-        printf("%s ", args[i]);
-      }
-        printf("\n");
+      
       if(argNum != 0){
         if(!args){printf("Fail mallocing command lines!\n");exit(0);}
       
         checkExit(args[0], line);
         exeCmds(line, 0);
-
-        argNum = 0;
       }
       free(line);
       for(int j=0;j<argNum;j++)
-        free(args[j]);
+	//printf("aaaaaa num %d\n",j);
+	free(args[j]);
       free(args);
+      argNum = 0;
     }
-  }*/
+  }
 }
 
 
