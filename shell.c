@@ -42,18 +42,19 @@ int main(int argc, char** argv){
         printf("%s ", args[i]);
       }
         printf("\n");*/
-
-      if(!args){printf("Fail mallocing command lines!\n");exit(0);}
+      if(argNum != 0){
+        if(!args){printf("Fail mallocing command lines!\n");exit(0);}
       
-      checkExit(args[0], line);
-      exeCmds(line, 0);
+        checkExit(args[0], line);
+        exeCmds(line, 0);
 
-      argNum = 0;
+        argNum = 0;
+      }
+      free(line);
+      for(int j=0;j<argNum;j++)
+        free(args[j]);
+      free(args);
     }
-    free(line);
-    for(int j=0;j<argNum;j++)
-      free(args[j]);
-    free(args);
   }
 }
 
