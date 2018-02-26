@@ -10,14 +10,14 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-typedef struct tokenizer{
+/*typedef struct tokenizer{
 char *str;
 // the string to parse                                                                                     
 char *pos;
 // position in string                                                                                      
 } TOKENIZER;
 
-static const char delim[] ={'&', ';'};
+static const char delim[] ={'&', ';'};*/
 
 //int init_tokenizer(TOKENIZER *t, char* line);
 //char *get_next_token(TOKENIZER *tokenizer);
