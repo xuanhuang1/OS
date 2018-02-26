@@ -10,6 +10,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <termios.h>
+#include <signal.h>
 
 #include "common.h"
 #include "toknizer.h"
@@ -44,6 +45,8 @@ void init_shell (){
 
   if (shell_is_interactive)
     {
+      while (tcgetpgrp (shell_terminal) != (shell_pgid = getpgrp ()))
+        kill (- shell_pgid, SIGTTIN);
 
       /* Put ourselves in our own process group.  */
       shell_pgid = getpid ();
@@ -64,29 +67,25 @@ void init_shell (){
 
 //this function is the signal handler                                                             
 void handle_sigchld(int sig, siginfo_t *sip, void *notused) {
-  int status;
-  //check whether the calling process is the one that has changed status, wait without blocking   
-  if (sip->si_pid == waitpid(sip->si_pid,&status, WNOHANG)) {
-        //check what is the exit status of the calling process                                    
-    if (WIFEXITED(status))
+    if (sip->si_code == CLD_EXITED)
       printf ("Voluntary exit.\n");
-    else  if (WIFSTOPPED(status))
+    else  if (sip->si_code == CLD_STOPPED)
       printf ("Suspended.\n");
-    else if ( (WTERMSIG(status) <= 12) || (WTERMSIG(status) == 15))     
+    else if ( (sip->si_code == CLD_KILLED) ||(sip->si_code == CLD_DUMPED) )     
       printf ("Croaked");
 
     else printf ("Nothing interesting\n");
-
-  }else
-        //if no update, print not interested.                                                     
-  printf("Not interested\n");
+    
+    //}else
+    //if no update, print not interested.                                                     
+    //printf("Not interested pid:%d\n", getpgid(getpid()));
 }
+
 
 int main(int argc, char** argv){
   initSigHd();
   init_shell();
-
-  while(1){
+   while(1){
     size_t sizeInput;
     char* line = NULL;
 
@@ -105,27 +104,27 @@ int main(int argc, char** argv){
 
           if( (strcmp(args[i],";") == 0) || (strcmp(args[i],"&") == 0) || (i==argNum-1) ){
 
-           if((i == argNum-1) && (strcmp(args[i],";")) && (strcmp(args[i],"&") )) i++;
-           char** toks = (char**)malloc(sizeof(char*)*(i-lastIndx+1));
-           for(int k=lastIndx; k<i;k++) toks[k-lastIndx] = args[k];
-             toks[i-lastIndx] = NULL;
-	         //for(int k=lastIndx; k<i;k++) printf("toks: %s",toks[k-lastIndx]);
-
-           lastIndx = i+1;
-           checkExit(toks, line);
-           exeCmds(toks,line, bgmode);
-           bgmode = FALSE;
-           free(toks);
-         }
-       }
-     }
+	    if((i == argNum-1) && (strcmp(args[i],";")) && (strcmp(args[i],"&") )) i++;
+	    char** toks = (char**)malloc(sizeof(char*)*(i-lastIndx+1));
+	    for(int k=lastIndx; k<i;k++) toks[k-lastIndx] = args[k];
+	    toks[i-lastIndx] = NULL;
+	    //for(int k=lastIndx; k<i;k++) printf("toks: %s",toks[k-lastIndx]);
+	    
+	    lastIndx = i+1;
+	    checkExit(toks, line);
+	    exeCmds(toks,line, bgmode);
+	    bgmode = FALSE;
+	    free(toks);
+	  }
+	}
+      }
      free(line);
      for(int j=0;j<argNum;j++)
        free(args[j]);
      free(args);
      argNum = 0;
+    }
    }
- }
 }
 
 int initSigHd(){
@@ -140,6 +139,28 @@ int initSigHd(){
         sa.sa_flags = SA_SIGINFO;
         //register the signal SIGCHLD.                                                            
         sigaction (SIGCHLD, &sa, NULL);
+	/*	int suc = fork();
+        //check whether fork is successful.                                                                                                                          
+        if (suc == -1){
+                printf("Fork failure!\n");
+                exit(EXIT_FAILURE);
+        }
+        if (suc == 0){
+                //if in child process, exit with success.                                                                                                            
+                exit(EXIT_SUCCESS);
+        }
+        else{
+                int i;
+                // let the parent process live for five seconds, and see whether there are updates from child process at each second                                 
+                for (i = 0; i < 5; i++){
+                        printf("%d second(s) have passed, let's see whether there is update from child.\n", i);
+                        //check whether sigaction is successful                                                                                                      
+                        if (sigaction(SIGCHLD, &sa, NULL) == -1) {
+                                exit(EXIT_FAILURE);
+                        }
+                        sleep(1);
+                }
+		}*/
 	return TRUE;
 }
 
@@ -175,7 +196,7 @@ int exeCmds(char** toks,  char* line, int bgmode){
   
   signal(SIGTTOU, SIG_IGN);
   // execute input program
-  pid_t pid = 1;
+  pid_t pid;
   int status;
   
   pid = fork();
@@ -196,14 +217,14 @@ int exeCmds(char** toks,  char* line, int bgmode){
     free(args);
     exit(EXIT_SUCCESS);
   }
-
+  
   if(!bgmode){
     wait(&status);
-  //printf("pgid parent: %d\n", getpgid(getpid()));
-
-    tcsetpgrp (shell_terminal, shell_pgid);
-    tcsetattr (shell_terminal, TCSADRAIN, &shell_tmodes);
+    //  printf("pgid parent: %d\n", getpgid(getpid()));
   }
+  tcsetpgrp (shell_terminal, shell_pgid);
+  tcsetattr (shell_terminal, TCSADRAIN, &shell_tmodes);
+  
 
   
   return 1;
