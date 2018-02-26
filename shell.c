@@ -25,9 +25,32 @@ struct job *first_job = NULL;
 
 void checkExit(char** token, char* line);
 int exeCmds(char**,char* line, int );
-int main(int argc, char** argv){
-  
+int initSigHd();
 
+//this function is the signal handler                                                             
+void handle_sigchld(int sig, siginfo_t *sip, void *notused) {
+  int status;
+  //check whether the calling process is the one that has changed status, wait without blocking   
+  if (sip->si_pid == waitpid(sip->si_pid,&status, WNOHANG)) {
+        //check what is the exit status of the calling process                                    
+    if (WIFEXITED(status))
+      printf ("Voluntary exit.\n");
+    else  if (WIFSTOPPED(status))
+      printf ("Suspended.\n");
+    else if ( (WTERMSIG(status) <= 12) || (WTERMSIG(status) == 15))     
+      printf ("Croaked");
+
+    else printf ("Nothing interesting\n");
+
+  }else
+        //if no update, print not interested.                                                     
+  printf("Not interested\n");
+}
+
+int main(int argc, char** argv){
+  initSigHd();
+  setpgid(getpid(),getpid());
+  
   while(1){
     size_t sizeInput;
     char* line = NULL;
@@ -67,6 +90,21 @@ int main(int argc, char** argv){
   }
 }
 
+int initSigHd(){
+        //declare the sample sigaction struct                                                     
+        struct sigaction sa;
+        //set the handler, in this case our handler has three arguments, so will set sa_sigaction                                                                                              
+        //instead of sa_handler                                                                   
+        sa.sa_sigaction = &handle_sigchld;
+        //initialize an empty set for signals to be blocked.                                      
+        sigemptyset(&sa.sa_mask);
+        //set flags, SA_SIGINFO flag is to specify signal handler in sa is sa_sigaction.          
+        sa.sa_flags = SA_SIGINFO;
+        //register the signal SIGCHLD.                                                            
+	//        sigaction (SIGCHLD, &sa, NULL);
+	return TRUE;
+}
+
 
 void checkExit(char** toks, char* line){
   if(!toks[0]) return;
@@ -102,7 +140,8 @@ int exeCmds(char** toks,  char* line, int bgmode){
   int status;
   pid = fork();
   if(pid == 0){
-    //setpgid(0, 0);
+    setpgid(getpid(), getpid());
+    printf("pgid child: %d \n", getpgid(getpid()));
     execvp(toks[0], &toks[0]);
     printf("\"%s\": command not found.\n",toks[0]);
     free(line);
@@ -117,6 +156,8 @@ int exeCmds(char** toks,  char* line, int bgmode){
   if(!bgmode)
     wait(&status);
 
+  printf("pgid parent: %d\n", getpgid(getpid()));
+  
   return 1;
   
 }
