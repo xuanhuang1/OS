@@ -1,14 +1,5 @@
 #ifndef TOKNIZER_H
 #define TOKNIZER_H
-#include "common.h"
-
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <unistd.h>
 
 /*typedef struct tokenizer{
 char *str;

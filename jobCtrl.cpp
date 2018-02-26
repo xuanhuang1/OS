@@ -1,3 +1,10 @@
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #include "common.h"
 
 typedef struct tokenizer{
