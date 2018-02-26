@@ -99,30 +99,33 @@ int main(int argc, char** argv){
       if(argNum != 0){
         if(!args){printf("Fail mallocing command lines!\n");exit(0);}
 
-	int lastIndx = 0;
-	for(int i=0;i<argNum;i++){
-	  if(strcmp(args[i],";") == 0 || (i==argNum-1)){
-	    if(i == argNum-1) i++;
-	    char** toks = (char**)malloc(sizeof(char*)*(i-lastIndx+1));
-	    for(int k=lastIndx; k<i;k++) toks[k-lastIndx] = args[k];
-	    toks[i-lastIndx] = NULL;
-	    //for(int k=lastIndx; k<i;k++) printf("toks: %s",toks[k-lastIndx]);
-	    
-	    lastIndx = i+1;
-	    checkExit(toks, line);
-	    exeCmds(toks,line, 0);
-	    free(toks);
-	  }
-	}
-      }
-      free(line);
-      for(int j=0;j<argNum;j++)
-	//printf("aaaaaa num %d\n",j);
-	free(args[j]);
-      free(args);
-      argNum = 0;
-    }
-  }
+        int lastIndx = 0; int bgmode = FALSE;
+        for(int i=0;i<argNum;i++){
+          if(strcmp(args[i],"&") == 0) bgmode = TRUE;
+
+          if( (strcmp(args[i],";") == 0) || (strcmp(args[i],"&") == 0) || (i==argNum-1) ){
+
+           if((i == argNum-1) && (strcmp(args[i],";")) && (strcmp(args[i],"&") )) i++;
+           char** toks = (char**)malloc(sizeof(char*)*(i-lastIndx+1));
+           for(int k=lastIndx; k<i;k++) toks[k-lastIndx] = args[k];
+             toks[i-lastIndx] = NULL;
+	         //for(int k=lastIndx; k<i;k++) printf("toks: %s",toks[k-lastIndx]);
+
+           lastIndx = i+1;
+           checkExit(toks, line);
+           exeCmds(toks,line, bgmode);
+           bgmode = FALSE;
+           free(toks);
+         }
+       }
+     }
+     free(line);
+     for(int j=0;j<argNum;j++)
+       free(args[j]);
+     free(args);
+     argNum = 0;
+   }
+ }
 }
 
 int initSigHd(){
@@ -136,7 +139,7 @@ int initSigHd(){
         //set flags, SA_SIGINFO flag is to specify signal handler in sa is sa_sigaction.          
         sa.sa_flags = SA_SIGINFO;
         //register the signal SIGCHLD.                                                            
-	//        sigaction (SIGCHLD, &sa, NULL);
+        sigaction (SIGCHLD, &sa, NULL);
 	return TRUE;
 }
 
@@ -178,9 +181,9 @@ int exeCmds(char** toks,  char* line, int bgmode){
   pid = fork();
   if(pid == 0){
     setpgid(getpid(), getpid());
-    printf("pgid child: %d \n", getpgid(getpid()));
-
-    tcsetpgrp (shell_terminal, getpid());
+    //printf("pgid child: %d \n", getpgid(getpid()));
+    if(!bgmode)
+      tcsetpgrp (shell_terminal, getpid());
     
     execvp(toks[0], &toks[0]);
 
@@ -194,13 +197,13 @@ int exeCmds(char** toks,  char* line, int bgmode){
     exit(EXIT_SUCCESS);
   }
 
-  //if(!bgmode)
+  if(!bgmode){
+    wait(&status);
+  //printf("pgid parent: %d\n", getpgid(getpid()));
 
-  wait(&status);
-  printf("pgid parent: %d\n", getpgid(getpid()));
-
-  tcsetpgrp (shell_terminal, shell_pgid);
-  tcsetattr (shell_terminal, TCSADRAIN, &shell_tmodes);
+    tcsetpgrp (shell_terminal, shell_pgid);
+    tcsetattr (shell_terminal, TCSADRAIN, &shell_tmodes);
+  }
 
   
   return 1;
