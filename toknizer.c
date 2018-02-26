@@ -44,12 +44,12 @@ char *get_next_token(TOKENIZER *tokenizer){
       if(isDelim(*(tokenizer->pos))){
         char* string = getSubstr(1, tokenizer->pos);
         tokenizer->pos++;
-	printf("delim %s", string);
+	//printf("delim %s", string);
         return string;
       }
       if( isDelim(*(tokenizer->pos+1)) || isspace(*(tokenizer->pos+1)) ){
         char* string = getSubstr(slength+1, tokenizer->pos-slength);
-        printf("next delim string %s, %d\n",tokenizer->pos-slength, slength);                                                                                                        
+        //printf("next delim string %s, %d\n",tokenizer->pos-slength, slength);                                                                                                        
         tokenizer->pos++;
         return string;
       }
@@ -59,7 +59,7 @@ char *get_next_token(TOKENIZER *tokenizer){
   }
   if(!isspace(*(tokenizer->pos))){
     char* string = getSubstr(slength+1, tokenizer->pos-slength);
-    printf("last string %s\n",string);                                                                                                                                           
+    //printf("last string %s\n",string);                                                                                                                                           
     tokenizer->pos++;
     return string;
   }
@@ -84,7 +84,6 @@ int parse(char* string){
   while((a=get_next_token(&t))!= NULL){
     n++;
     free(a);
-    printf("%d\n", n);
   }
 
   repos_tokenizer(&t, string);
@@ -96,7 +95,7 @@ int parse(char* string){
 
   if(!n){printf("empty imput!\n");}
 
-  printf("num of token: %d \n", n);
+  //printf("num of token: %d \n", n);
   destory_tokenizer(&t);
   return n;
 }

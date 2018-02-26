@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <termios.h>
 
 #include "common.h"
 #include "toknizer.h"
@@ -23,9 +24,43 @@ int argNum;
 char** args=NULL;
 struct job *first_job = NULL;
 
+pid_t shell_pgid;
+struct termios shell_tmodes;
+int shell_terminal;
+int shell_is_interactive;
+
 void checkExit(char** token, char* line);
 int exeCmds(char**,char* line, int );
 int initSigHd();
+
+/* Make sure the shell is running interactively as the foreground job
+   before proceeding. */
+
+void init_shell (){
+
+  /* See if we are running interactively.  */
+  shell_terminal = STDIN_FILENO;
+  shell_is_interactive = isatty (shell_terminal);
+
+  if (shell_is_interactive)
+    {
+
+      /* Put ourselves in our own process group.  */
+      shell_pgid = getpid ();
+      if (setpgid (shell_pgid, shell_pgid) < 0)
+        {
+          perror ("Couldn't put the shell in its own process group");
+          exit (1);
+        }
+
+      /* Grab control of the terminal.  */
+      tcsetpgrp (shell_terminal, shell_pgid);
+
+      /* Save default terminal attributes for shell.  */
+      tcgetattr (shell_terminal, &shell_tmodes);
+    }
+}
+
 
 //this function is the signal handler                                                             
 void handle_sigchld(int sig, siginfo_t *sip, void *notused) {
@@ -49,8 +84,8 @@ void handle_sigchld(int sig, siginfo_t *sip, void *notused) {
 
 int main(int argc, char** argv){
   initSigHd();
-  setpgid(getpid(),getpid());
-  
+  init_shell();
+
   while(1){
     size_t sizeInput;
     char* line = NULL;
@@ -135,14 +170,20 @@ int exeCmds(char** toks,  char* line, int bgmode){
   if(!toks){printf("Parsing failed in exeCmd\n");return 1;}
   if(!toks[0]){printf("No valid args input for program!\n");return 1;}
   
+  signal(SIGTTOU, SIG_IGN);
   // execute input program
   pid_t pid = 1;
   int status;
+  
   pid = fork();
   if(pid == 0){
     setpgid(getpid(), getpid());
     printf("pgid child: %d \n", getpgid(getpid()));
+
+    tcsetpgrp (shell_terminal, getpid());
+    
     execvp(toks[0], &toks[0]);
+
     printf("\"%s\": command not found.\n",toks[0]);
     free(line);
     //for(int j=0;j<tokLen;j++)
@@ -153,10 +194,14 @@ int exeCmds(char** toks,  char* line, int bgmode){
     exit(EXIT_SUCCESS);
   }
 
-  if(!bgmode)
-    wait(&status);
+  //if(!bgmode)
 
+  wait(&status);
   printf("pgid parent: %d\n", getpgid(getpid()));
+
+  tcsetpgrp (shell_terminal, shell_pgid);
+  tcsetattr (shell_terminal, TCSADRAIN, &shell_tmodes);
+
   
   return 1;
   
