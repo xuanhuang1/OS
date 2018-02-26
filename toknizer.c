@@ -1,4 +1,4 @@
-#include "toknizer.h"
+#include "common.h"
 
 int init_tokenizer(TOKENIZER *t, char* line){
   if(line){
