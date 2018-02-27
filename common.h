@@ -26,11 +26,11 @@ typedef struct job
   struct termios tmodes;      /* saved terminal modes */
 } job;
 
-extern struct job **first_job;
-extern struct job **last_job;
+extern struct job *first_job;
+extern struct job *last_job;
 extern char** args;
 extern int argNum;
-extern int* jobID;
+extern int jobID;
 extern pid_t shell_pgid;
 extern struct termios shell_tmodes;
 extern int shell_terminal;

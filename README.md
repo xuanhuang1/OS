@@ -1,1 +1,4 @@
 # OS
+
+how shared ll?
+ 

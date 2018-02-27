@@ -49,13 +49,6 @@ int checkBuiltIn(char** toks, char* line){
     freeGlobals();
     clearList();
     free(line);
-    munmap(first_job, sizeof(job*));
-    munmap(last_job, sizeof(job*));
-    munmap(jobID, sizeof(int));
-
-    shm_unlink("first_job");
-    shm_unlink("last_job");
-    shm_unlink("jobID");
     exit(EXIT_SUCCESS);
       
 
@@ -122,7 +115,6 @@ int exeCmds(char** toks,  char* line, int bgmode){
   pid = fork();
   if(pid == 0){
     setpgid(getpid(), getpid());
-    //push(line, pid);
     //printf("pgid child: %d \n", getpgid(getpid()));
     if(!bgmode)
       tcsetpgrp (shell_terminal, getpid());
@@ -142,6 +134,8 @@ int exeCmds(char** toks,  char* line, int bgmode){
   }
 
   setpgid(pid, pid);
+  push(line, pid);
+
   if(!bgmode)
     waitpid(pid, &status, WUNTRACED);
 
