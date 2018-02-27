@@ -11,8 +11,6 @@
 #include <unistd.h>
 #include <termios.h>
 
-#include <signal.h>
-#include <errno.h>
 
 
 enum TF{FALSE,TRUE};
@@ -20,6 +18,7 @@ enum TF{FALSE,TRUE};
 typedef struct job
 {
   struct job *next;           /* next job */
+  struct job *prev;           /* next job */
   char **argv;                /* for exec */
   int jobid;                       /*   job ID   */
   pid_t pgid;                 /* process group ID, the same as the process ID for current process */
@@ -28,6 +27,7 @@ typedef struct job
 } job;
 
 extern struct job *first_job;
+extern struct job *last_job;
 extern char** args;
 extern int argNum;
 
