@@ -1,5 +1,5 @@
 all:
-	gcc -Wall -g -o test tknz.c shell.c signalStuff.c cmdExec.c ll.c
+	gcc -Wall -g -lrt -o test tknz.c shell.c signalStuff.c cmdExec.c ll.c
 
 clean:
-	rm test
+	rm test vgcore.*

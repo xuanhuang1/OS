@@ -9,21 +9,37 @@
 #include "ll.h"
 
 #include <errno.h>
+#include <time.h>
+#include <sys/mman.h>
+#include <semaphore.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <math.h>
 
 #define PROGFAIL -1
 
 
 int argNum;
 char** args=NULL;
-struct job *first_job = NULL;
-struct job *last_job = NULL;
+struct job **first_job = NULL;
+struct job **last_job = NULL;
+int *jobID;
+int* validNewJob =NULL;
 
 pid_t shell_pgid;
 struct termios shell_tmodes;
 int shell_terminal;
 int shell_is_interactive;
 
+void initSharedVar(){
+   first_job = mmap(NULL, sizeof(job*), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+   last_job = mmap(NULL, sizeof(job*), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+   jobID = mmap(NULL, sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+   *first_job = NULL;
+   *last_job = NULL;
+   *jobID = 0;
 
+}
 
 /* Make sure the shell is running interactively as the foreground job
    before proceeding. */
@@ -60,10 +76,12 @@ void init_shell (){
 int main(int argc, char** argv){
   initSigHd();
   init_shell();
+  initSharedVar();
+
   while(1){
     size_t sizeInput;
     char* line = NULL;
-    
+
     printf("theShell: ");
 
     int read = getline(&line, &sizeInput, stdin);
@@ -71,7 +89,6 @@ int main(int argc, char** argv){
     if( read == PROGFAIL){
       printf("Fail reading arguments!\n");
       fprintf(stderr, "Error : %s\n", strerror( errno ));
-      clearerr(stdin);
     }else{
       argNum = parse(line);
       
@@ -84,26 +101,26 @@ int main(int argc, char** argv){
 
           if( (strcmp(args[i],";") == 0) || (strcmp(args[i],"&") == 0) || (i==argNum-1) ){
 
-           if((i == argNum-1) && (strcmp(args[i],";")) && (strcmp(args[i],"&") )) i++;
-           char** toks = (char**)malloc(sizeof(char*)*(i-lastIndx+1));
-           for(int k=lastIndx; k<i;k++) toks[k-lastIndx] = args[k];
-             toks[i-lastIndx] = NULL;
-	    //for(int k=lastIndx; k<i;k++) printf("toks: %s",toks[k-lastIndx]);
+            if((i == argNum-1) && (strcmp(args[i],";")) && (strcmp(args[i],"&") )) i++;
+            char** toks = (char**)malloc(sizeof(char*)*(i-lastIndx+1));
+            for(int k=lastIndx; k<i;k++) toks[k-lastIndx] = args[k];
+            toks[i-lastIndx] = NULL;
 
-           lastIndx = i+1;
-           checkExit(toks, line);
-           exeCmds(toks,line, bgmode);
-           bgmode = FALSE;
-           free(toks);
-         }
-       }
-     }
-     free(line);
-     for(int j=0;j<argNum;j++)
-       free(args[j]);
-     free(args);
-     argNum = 0;
-   }
- }
+            lastIndx = i+1;
+            if(!checkBuiltIn(toks, line))
+              exeCmds(toks,line, bgmode);
+            bgmode = FALSE;
+
+            free(toks);
+          }
+        }
+      }
+      free(line);
+      for(int j=0;j<argNum;j++)
+        free(args[j]);
+      free(args);
+      argNum = 0;
+    }
+  }  
 }
 

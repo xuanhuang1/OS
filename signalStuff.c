@@ -31,7 +31,7 @@ int initSigHd(){
         //initialize an empty set for signals to be blocked.                                      
   sigfillset(&sa.sa_mask);
         //set flags, SA_SIGINFO flag is to specify signal handler in sa is sa_sigaction.          
-  sa.sa_flags = SA_SIGINFO;
+  sa.sa_flags = SA_RESTART | SA_SIGINFO;
         //register the signal SIGCHLD.                                                            
   
   if(sigaction (SIGCHLD, &sa, NULL)==-1)perror("Error handling SIGCHLD");;

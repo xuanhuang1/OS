@@ -3,7 +3,7 @@
 
 #include "common.h"
 
-int push (int, char **, int , pid_t, int*);
+int push (char *, pid_t);
 void print_list();
 job* findJobByPgid(pid_t pgid);
 job* findJobByjobID(int jid);
