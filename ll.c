@@ -6,15 +6,17 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
+
 int push (char * argv, pid_t pid){
 	job *current = (job*)malloc(sizeof(job));
 
 	if(isEmpty()) jobID = 0;
 	current->pgid = pid;
 	current->jobid = jobID;
-	current->status = 1;
+	current->status = RUNNING;
 	current->next = NULL;
 	current->prev = NULL;
+	tcgetattr (shell_terminal, &current->tmodes);
 
 	jobID += 1;
 	char* string = (char*)malloc(sizeof(char)*(strlen(argv)+1));
@@ -39,25 +41,26 @@ int push (char * argv, pid_t pid){
 void print_list() {
     job * current = first_job;
 
-	//printf("in order: \n");
-    while (current != NULL) {
-        printf("jobid[%d]: %5d %5d %5s\n", current->jobid, current->pgid, current->status, current->argv);
+	printf("\n\nPrinting in reversed order: !!!!!\n");
+    /*while (current != NULL) {
+        printf("jobid[%d]: %10d %10s %10s", current->jobid, current->pgid, current->status?"Running":"stopped", current->argv);
         current = current->next;
     }
-    printf("done.\n");
-/*
-	printf("reverse: \n");
+    printf("done.\n\n\n");*/
+
+	//printf("reverse: \n");
     current = last_job;
     while (current != NULL) {
-        printf("jobid[%d]: %5d %5d\n", current->jobid, current->pgid, current->status);
+        printf("jobid[%d]: %10d %10s %10s", current->jobid, current->pgid, current->status?"Running":"stopped", current->argv);
         current = current->prev;
     }
-    printf("done.\n");*/
+    printf("done.\n\n\n");
 }
 
 job* findJobByPgid(pid_t pgid){
 	job *current = first_job;
 	if(!current) return NULL;
+	if(current->pgid == pgid) return current;
 
 	while(current->next){
 		if(current->pgid == pgid)
@@ -70,6 +73,8 @@ job* findJobByPgid(pid_t pgid){
 job* findJobByjobID(int jid){
 	job *current = first_job;
 	if(!current) return NULL;
+	if(current->jobid == jid) return current;
+
 	while(current->next){
 		if(current->jobid == jid)
 			return current;
@@ -98,6 +103,7 @@ int removeJob(job* j){
 	}
 	free(j->argv);
 	free(j);
+	j = NULL;	
 	return TRUE;
 }
 

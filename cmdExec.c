@@ -16,10 +16,36 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <math.h>
+#include <signal.h>
 
 enum cmds {EXIT, JOBS, BG, FG,KILL, MAXBUILTIN};
 
 const char* builtInCommands[MAXBUILTIN] = {"exit", "jobs", "bg", "fg","kill"};
+
+void bgJob(job *j){
+  if(j->status == STOPPED){
+    if(kill (- j->pgid, SIGCONT)<0)
+      perror("kill (SIGCONT)");
+  }
+}
+
+void fgJob(job *j){
+  tcsetpgrp(shell_terminal, j->pgid);
+
+  int status;
+  if(j->status == STOPPED){
+
+    tcsetattr(shell_terminal,TCSADRAIN, &j->tmodes);
+
+    if(kill (- j->pgid, SIGCONT)<0)
+      perror("kill (SIGCONT)");
+  }
+  waitpid(j->pgid, &status, WUNTRACED);
+
+  tcsetpgrp(shell_terminal, shell_pgid);
+  tcsetattr(shell_terminal, TCSADRAIN, &shell_tmodes);
+
+}
 
 void freeGlobals(){
   for(int j=0;j<argNum;j++)
@@ -59,10 +85,11 @@ int checkBuiltIn(char** toks, char* line){
     if( toks[1]){
       if ((toks[1][0] == '%') && (allDigitFrom(1, (toks[1])+0) != -1) ){
         int n = allDigitFrom(1, toks[1]+0);
-        if(n == -1){printf("not a valid num after bg \n");return TRUE;}
+        if(n == -1){printf("not a valid num after bg %% \n");return TRUE;}
         printf("read bg with num :%d\n", n);
-        //kill(SIGCONT, );
-
+        job *j = findJobByjobID(n);
+        if(j)
+          bgJob(j);
         return TRUE;
       }
       printf("wrong format bg \n");return TRUE;
@@ -74,9 +101,11 @@ int checkBuiltIn(char** toks, char* line){
     if( toks[1]){
       if ((toks[1][0] == '%') && (allDigitFrom(1, (toks[1])+0) != -1) ){
         int n = allDigitFrom(1, toks[1]+0);
-        if(n == -1){printf("not a valid num after fg \n");return TRUE;}
+        if(n == -1){printf("not a valid num after fg %% \n");return TRUE;}
         printf("read fg with num :%d\n", n);
-
+        job *j = findJobByjobID(n);
+        if(j)
+          fgJob(j);
         return TRUE;
       }
       printf("wrong format fg \n");return TRUE;
@@ -88,14 +117,27 @@ int checkBuiltIn(char** toks, char* line){
     if( toks[1]){
       if ((toks[1][0] == '%') && (allDigitFrom(1, (toks[1])+0) != -1) ){
         int n = allDigitFrom(1, toks[1]+0);
-        if(n == -1){printf("not a valid num after kill \n");return TRUE;}
+        if(n == -1){printf("not a valid num after kill %% \n");return TRUE;}
         printf("read kill with num :%d\n", n);
-
+        job *j = findJobByjobID(n);
+        if(j)
+          kill(- j->pgid, SIGTERM);
         return TRUE;
+      }else if(strcmp(toks[1],"-9")==0){
+        if ((toks[2][0] == '%') && (allDigitFrom(1, (toks[2])+0) != -1) ){
+          int n = allDigitFrom(1, toks[1]+0);
+          if(n == -1){printf("not a valid num after kill -9 %% \n");return TRUE;}
+          printf("read kill -9 with num :%d\n", n);
+          job *j = findJobByjobID(n);
+          if(j)
+            kill(- j->pgid, SIGKILL);
+          return TRUE;
+        }
+
       }
       printf("wrong format kill \n");return TRUE;
     }else{
-      printf("do kill\n");return TRUE;
+      printf("use kill [-9] %%[number] \n");return TRUE;
     }
     return TRUE;
   }else{}
@@ -104,6 +146,10 @@ int checkBuiltIn(char** toks, char* line){
 }
 
 int exeCmds(char** toks,  char* line, int bgmode){
+
+  sigset_t sigset;
+  sigemptyset(&sigset);
+  sigaddset(&sigset, SIGCHLD);
 
   if(!toks){printf("Parsing failed in exeCmd\n");return 1;}
   if(!toks[0]){printf("No valid args input for program!\n");return 1;}
@@ -122,6 +168,8 @@ int exeCmds(char** toks,  char* line, int bgmode){
     signal(SIGTTOU, SIG_DFL);
     signal(SIGINT, SIG_DFL);
     signal(SIGCHLD, SIG_DFL);
+    signal(SIGTSTP, SIG_DFL);
+    
 
     execvp(toks[0], &toks[0]);
 
@@ -134,7 +182,12 @@ int exeCmds(char** toks,  char* line, int bgmode){
   }
 
   setpgid(pid, pid);
+
+  sigprocmask(SIG_BLOCK, &sigset, NULL);
   push(line, pid);
+  sigprocmask(SIG_UNBLOCK, &sigset, NULL);
+
+
 
   if(!bgmode)
     waitpid(pid, &status, WUNTRACED);

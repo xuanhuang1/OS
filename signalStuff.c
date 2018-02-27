@@ -4,17 +4,29 @@
 
 #include <signal.h>
 #include <errno.h>
+#include "ll.h"
 
 //this function is the signal handler                                                             
 void handle_sigchld(int sig, siginfo_t *sip, void *notused) {
-    if (sip->si_code == CLD_EXITED)
-      printf ("Voluntary exit.\n");
-    else  if (sip->si_code == CLD_STOPPED)
-      printf ("Suspended.\n");
-    else if ( (sip->si_code == CLD_KILLED) ||(sip->si_code == CLD_DUMPED) )     
-      printf ("Croaked");
+    if (sip->si_code == CLD_EXITED){
+      job *j = findJobByPgid(sip->si_pid);
+      printf ("Voluntary exit %d %d.\n", sip->si_pid, j == NULL);
+      removeJob(j);
+    }else  if (sip->si_code == CLD_STOPPED){
+      job *j = findJobByPgid(sip->si_pid);  
+      printf ("Suspended %d %d.\n", sip->si_pid, j == NULL);
+      tcgetattr (shell_terminal, &j->tmodes);
+      j->status = STOPPED;
 
-    else printf ("Nothing interesting\n");
+    }else if ( (sip->si_code == CLD_KILLED) ||(sip->si_code == CLD_DUMPED) ) {
+      job *j = findJobByPgid(sip->si_pid);   
+      printf ("Croaked %d %d.\n", sip->si_pid, j == NULL);
+      removeJob(j);
+
+    }else if(sip->si_code == CLD_CONTINUED){
+      job *j = findJobByPgid(sip->si_pid);
+      j->status = RUNNING;
+    }else printf ("Nothing interesting\n");
     
     //}else
     //if no update, print not interested.                                                     
@@ -38,6 +50,7 @@ int initSigHd(){
   signal(SIGTTOU, SIG_IGN);
   signal(SIGINT, SIG_IGN);
   signal(SIGSTOP, SIG_IGN);
+  signal(SIGTSTP, SIG_IGN);
 
 
   return TRUE;

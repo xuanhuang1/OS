@@ -14,6 +14,8 @@
 
 
 enum TF{FALSE,TRUE};
+enum STATUS{STOPPED,RUNNING};
+
 
 typedef struct job
 {

@@ -7,7 +7,7 @@
 
 #define NEG -1
 
-int test(){
+int main(){
 int suc = fork();
 	//check whether fork is successful.
 	if (suc == -1){
@@ -23,10 +23,6 @@ int suc = fork();
 		// let the parent process live for five seconds, and see whether there are updates from child process at each second
 		for (i = 0; i < 5; i++){
 			printf("%d second(s) have passed, let's see whether there is update from child.\n", i);
-			//check whether sigaction is successful
-			if (sigaction(SIGCHLD, &sa, NULL) == NEG) {
-  				exit(EXIT_FAILURE);
-			}
 			sleep(1);
 		}
 	}
