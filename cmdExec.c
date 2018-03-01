@@ -127,8 +127,10 @@ int checkBuiltIn(char** toks, char* line){
         if(n == -1){printf("not a valid num after kill %% \n");return TRUE;}
         printf("read kill with num :%d\n", n);
         job *j = findJobByjobID(n);
+
         if(j){
-          kill (- j->pgid, SIGCONT);
+          if(j->status == STOPPED)
+            kill (- j->pgid, SIGCONT);
           kill(- j->pgid, SIGTERM);
         }
         return TRUE;
@@ -138,8 +140,10 @@ int checkBuiltIn(char** toks, char* line){
           if(n == -1){printf("not a valid num after kill -9 %% \n");return TRUE;}
           printf("read kill -9 with num :%d\n", n);
           job *j = findJobByjobID(n);
+
           if(j){
-            kill (- j->pgid, SIGCONT);
+            if(j->status == STOPPED)
+             kill (- j->pgid, SIGCONT);
             kill(- j->pgid, SIGKILL);
           }
           return TRUE;

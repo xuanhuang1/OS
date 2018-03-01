@@ -10,23 +10,23 @@
 void handle_sigchld(int sig, siginfo_t *sip, void *notused) {
     if (sip->si_code == CLD_EXITED){
       job *j = findJobByPgid(sip->si_pid);
-      printf ("\nVoluntary exit job[%d] %d %s.\n", j->jobid, sip->si_pid, j->argv);
+      //printf ("\nVoluntary exit job[%d] %d %s.\n", j->jobid, sip->si_pid, j->argv);
       removeJob(j);
     }else  if (sip->si_code == CLD_STOPPED){
       job *j = findJobByPgid(sip->si_pid);  
-      printf ("\nSuspended job[%d] %d %s.\n", j->jobid, sip->si_pid, j->argv);
+      //printf ("\nSuspended job[%d] %d %s.\n", j->jobid, sip->si_pid, j->argv);
       tcgetattr (shell_terminal, &j->tmodes);
       j->status = STOPPED;
 
     }else if ( (sip->si_code == CLD_KILLED) ||(sip->si_code == CLD_DUMPED) ) {
       job *j = findJobByPgid(sip->si_pid);   
-      printf ("\nkilled job[%d] %d %s.\n", j->jobid, sip->si_pid, j->argv);
+      //printf ("\nkilled job[%d] %d %s.\n", j->jobid, sip->si_pid, j->argv);
       removeJob(j);
 
     }else if(sip->si_code == CLD_CONTINUED){
       job *j = findJobByPgid(sip->si_pid);
       j->status = RUNNING;
-    }else printf ("Nothing interesting\n");
+    }//else printf ("Nothing interesting\n");
     
     //}else
     //if no update, print not interested.                                                     

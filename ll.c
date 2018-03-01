@@ -46,12 +46,13 @@ int push (int bgmode, char ** toks, pid_t pid){
 
   	current->argv = string;
 
-  	printf("push: %s\n", current->argv);
+  	//printf("push: %s\n", current->argv);
 	if(!(first_job)){
 		first_job = current;
 		last_job = current;
 		return TRUE;
 	}
+
 	current->prev = NULL;
 	current->next = first_job;
 	first_job = current;
@@ -62,7 +63,7 @@ int push (int bgmode, char ** toks, pid_t pid){
 void print_list() {
     job * current = first_job;
 
-	printf("\n\nPrinting in reversed order: !!!!!\n");
+	printf("\n\nPrinting in reversed order (as added): !!!!!\n");
     /*while (current != NULL) {
         printf("jobid[%d]: %10d %10s %10s", current->jobid, current->pgid, current->status?"Running":"stopped", current->argv);
         current = current->next;
@@ -81,26 +82,33 @@ void print_list() {
 job* findJobByPgid(pid_t pgid){
 	job *current = first_job;
 	if(!current) return NULL;
-	if(current->pgid == pgid) return current;
+	if(current->pgid == pgid) {return current;}
 
 	while(current->next){
 		if(current->pgid == pgid)
 			return current;
 		current = current->next;
 	}
+
+	if(current->pgid == pgid) {return current;}
 	return NULL;
 }
 
 job* findJobByjobID(int jid){
 	job *current = first_job;
+
 	if(!current) return NULL;
 	if(current->jobid == jid) return current;
 
 	while(current->next){
 		if(current->jobid == jid)
+		{	
 			return current;
+
+		}
 		current = current->next;
 	}
+	if(current->jobid == jid) return current;
 	return NULL;
 }
 
@@ -121,7 +129,6 @@ job* findLastSusJob(){
 int removeJob(job* j){
 	if(!j) return FALSE;
 	job * temp = j->prev;
-	//printf("removeJob: %d\n", j->jobid);
 	if(!temp){
 		if(!j->next) last_job = NULL;
 		else j->next->prev = NULL;
