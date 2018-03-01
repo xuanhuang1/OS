@@ -7,7 +7,7 @@
 #include <sys/stat.h>
 
 
-int push (char * argv, pid_t pid){
+int push (int bgmode, char ** toks, pid_t pid){
 	job *current = (job*)malloc(sizeof(job));
 
 	if(isEmpty()) jobID = 0;
@@ -19,10 +19,31 @@ int push (char * argv, pid_t pid){
 	tcgetattr (shell_terminal, &current->tmodes);
 
 	jobID += 1;
-	char* string = (char*)malloc(sizeof(char)*(strlen(argv)+1));
-	memcpy(string, argv, strlen(argv));
-  	string[strlen(argv)] = '\0';
-  	//string = "aaa\0";
+	int len = strlen(toks[0]);
+
+	int i=1;
+	while(toks[i]){
+		len += strlen(toks[i])+1;
+		i++;
+	}
+
+	if(bgmode) len+=2;
+	char* string = (char*)malloc(len+1);
+	strcpy(string, toks[0]);
+	int j = 1;
+
+	while(toks[j]){
+		strcat(string, " ");
+		strcat(string, toks[j]);
+		j++;
+	}
+	//strcat(string, '''');
+	if(bgmode) strcat(string, " &");
+  	string[len] = '\0';
+
+	//memcpy(string, argv, strlen(argv));
+  	//string[strlen(argv)] = '\0';
+
   	current->argv = string;
 
   	printf("push: %s\n", current->argv);
@@ -51,7 +72,7 @@ void print_list() {
 	//printf("reverse: \n");
     current = last_job;
     while (current != NULL) {
-        printf("jobid[%d]: %10d %10s %10s", current->jobid, current->pgid, current->status?"Running":"stopped", current->argv);
+        printf("jobid[%d]: %10d %10s %10s\n", current->jobid, current->pgid, current->status?"Running":"stopped", current->argv);
         current = current->prev;
     }
     printf("done.\n\n\n");
@@ -82,6 +103,20 @@ job* findJobByjobID(int jid){
 	}
 	return NULL;
 }
+
+job* findLastSusJob(){
+	job *current = first_job;
+	if(!current) return NULL;
+	if(current->status == STOPPED) return current;
+
+	while(current->next){
+		if(current->status == STOPPED)
+			return current;
+		current = current->next;
+	}
+	return NULL;
+}
+
 
 int removeJob(job* j){
 	if(!j) return FALSE;

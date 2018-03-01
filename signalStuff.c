@@ -10,17 +10,17 @@
 void handle_sigchld(int sig, siginfo_t *sip, void *notused) {
     if (sip->si_code == CLD_EXITED){
       job *j = findJobByPgid(sip->si_pid);
-      printf ("Voluntary exit %d %d.\n", sip->si_pid, j == NULL);
+      printf ("\nVoluntary exit job[%d] %d %s.\n", j->jobid, sip->si_pid, j->argv);
       removeJob(j);
     }else  if (sip->si_code == CLD_STOPPED){
       job *j = findJobByPgid(sip->si_pid);  
-      printf ("Suspended %d %d.\n", sip->si_pid, j == NULL);
+      printf ("\nSuspended job[%d] %d %s.\n", j->jobid, sip->si_pid, j->argv);
       tcgetattr (shell_terminal, &j->tmodes);
       j->status = STOPPED;
 
     }else if ( (sip->si_code == CLD_KILLED) ||(sip->si_code == CLD_DUMPED) ) {
       job *j = findJobByPgid(sip->si_pid);   
-      printf ("Croaked %d %d.\n", sip->si_pid, j == NULL);
+      printf ("\nkilled job[%d] %d %s.\n", j->jobid, sip->si_pid, j->argv);
       removeJob(j);
 
     }else if(sip->si_code == CLD_CONTINUED){
@@ -49,8 +49,10 @@ int initSigHd(){
   if(sigaction (SIGCHLD, &sa, NULL)==-1)perror("Error handling SIGCHLD");;
   signal(SIGTTOU, SIG_IGN);
   signal(SIGINT, SIG_IGN);
-  signal(SIGSTOP, SIG_IGN);
+  signal(SIGTERM, SIG_IGN);
+  signal(SIGTTIN, SIG_IGN);
   signal(SIGTSTP, SIG_IGN);
+  signal(SIGQUIT, SIG_IGN); 
 
 
   return TRUE;

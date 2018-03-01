@@ -94,6 +94,9 @@ int checkBuiltIn(char** toks, char* line){
       }
       printf("wrong format bg \n");return TRUE;
     }else{
+      job *j = findLastSusJob();
+      if(j)
+        bgJob(j);
       printf("do bg\n");return TRUE;
     }
     return TRUE;
@@ -110,6 +113,10 @@ int checkBuiltIn(char** toks, char* line){
       }
       printf("wrong format fg \n");return TRUE;
     }else{
+      job *j = last_job;
+        if(j)
+          fgJob(j);
+        return TRUE;
       printf("do fg\n");return TRUE;
     }
     return TRUE;
@@ -120,8 +127,10 @@ int checkBuiltIn(char** toks, char* line){
         if(n == -1){printf("not a valid num after kill %% \n");return TRUE;}
         printf("read kill with num :%d\n", n);
         job *j = findJobByjobID(n);
-        if(j)
+        if(j){
+          kill (- j->pgid, SIGCONT);
           kill(- j->pgid, SIGTERM);
+        }
         return TRUE;
       }else if(strcmp(toks[1],"-9")==0){
         if ((toks[2][0] == '%') && (allDigitFrom(1, (toks[2])+0) != -1) ){
@@ -129,8 +138,10 @@ int checkBuiltIn(char** toks, char* line){
           if(n == -1){printf("not a valid num after kill -9 %% \n");return TRUE;}
           printf("read kill -9 with num :%d\n", n);
           job *j = findJobByjobID(n);
-          if(j)
+          if(j){
+            kill (- j->pgid, SIGCONT);
             kill(- j->pgid, SIGKILL);
+          }
           return TRUE;
         }
 
@@ -167,15 +178,17 @@ int exeCmds(char** toks,  char* line, int bgmode){
 
     signal(SIGTTOU, SIG_DFL);
     signal(SIGINT, SIG_DFL);
-    signal(SIGCHLD, SIG_DFL);
+    signal(SIGTERM, SIG_DFL);
+    signal(SIGTTIN, SIG_DFL);
     signal(SIGTSTP, SIG_DFL);
+    signal(SIGQUIT, SIG_DFL);
     
 
     execvp(toks[0], &toks[0]);
 
     printf("\"%s\": command not found.\n",toks[0]);
     free(line);
-    //for(int j=0;j<tokLen;j++)
+
     free(toks);
     freeGlobals();
     exit(EXIT_SUCCESS);
@@ -184,7 +197,7 @@ int exeCmds(char** toks,  char* line, int bgmode){
   setpgid(pid, pid);
 
   sigprocmask(SIG_BLOCK, &sigset, NULL);
-  push(line, pid);
+  push(bgmode, toks, pid);
   sigprocmask(SIG_UNBLOCK, &sigset, NULL);
 
 
@@ -196,7 +209,6 @@ int exeCmds(char** toks,  char* line, int bgmode){
   tcsetpgrp (shell_terminal, shell_pgid);
   tcsetattr (shell_terminal, TCSADRAIN, &shell_tmodes);
   
-
   
   return 1;
   

@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <termios.h>
 
+#define INPUTSIZE 80
 
 
 enum TF{FALSE,TRUE};

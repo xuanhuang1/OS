@@ -67,14 +67,13 @@ int main(int argc, char** argv){
   init_shell();
 
   while(1){
-    size_t sizeInput;
-    char* line = NULL;
+    char* line = (char*)malloc(INPUTSIZE);
 
     printf("theShell: ");
 
-    int read = getline(&line, &sizeInput, stdin);
+    char* read = fgets(line, INPUTSIZE, stdin);
 
-    if( read == PROGFAIL){
+    if( !read ){
       printf("Fail reading arguments!\n");
       fprintf(stderr, "Error : %s\n", strerror( errno ));
     }else{
@@ -90,6 +89,7 @@ int main(int argc, char** argv){
           if( (strcmp(args[i],";") == 0) || (strcmp(args[i],"&") == 0) || (i==argNum-1) ){
 
             if((i == argNum-1) && (strcmp(args[i],";")) && (strcmp(args[i],"&") )) i++;
+
             char** toks = (char**)malloc(sizeof(char*)*(i-lastIndx+1));
             for(int k=lastIndx; k<i;k++) toks[k-lastIndx] = args[k];
             toks[i-lastIndx] = NULL;
